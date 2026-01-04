@@ -42,15 +42,6 @@
     - ubuntu-upgrade
 
   post_tasks:
-    - name: Verify services are running
-      systemd:
-        name: "{{ item }}"
-        state: started
-      loop:
-        - nomad
-        - consul
-      ignore_errors: yes
-
     - name: Display upgrade complete message
       debug:
         msg: "{{ inventory_hostname }} upgrade complete!"
