@@ -1,0 +1,41 @@
+---
+# Deploy k0s cluster with k0sctl (runs locally)
+- name: Deploy k0s cluster with k0sctl
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    k0sctl_config: "{{ playbook_dir }}/../../k0s/k0sctl.yaml"
+    ssh_auth_sock: "{{ lookup('env', 'HOME') }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+
+  tasks:
+    - name: Check k0sctl is installed
+      command: which k0sctl
+      register: k0sctl_check
+      changed_when: false
+      failed_when: k0sctl_check.rc != 0
+
+    - name: Run k0sctl apply
+      command: k0sctl apply --config {{ k0sctl_config }}
+      environment:
+        SSH_AUTH_SOCK: "{{ ssh_auth_sock }}"
+      register: k0sctl_result
+
+    - name: Display k0sctl output
+      debug:
+        msg: "{{ k0sctl_result.stdout_lines }}"
+
+    - name: Update local kubeconfig
+      shell: k0sctl kubeconfig --config {{ k0sctl_config }} > ~/.kube/config
+      environment:
+        SSH_AUTH_SOCK: "{{ ssh_auth_sock }}"
+
+    - name: Display cluster status
+      command: kubectl get nodes -o wide
+      register: nodes_status
+      changed_when: false
+
+    - name: Show cluster nodes
+      debug:
+        msg: "{{ nodes_status.stdout_lines }}"

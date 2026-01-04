@@ -1,0 +1,56 @@
+---
+# Clean up legacy installations
+
+# Nomad/Consul
+- name: Stop Nomad service if running
+  systemd:
+    name: nomad
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Stop Consul service if running
+  systemd:
+    name: consul
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+# Docker (k0s uses containerd)
+- name: Remove Docker packages
+  apt:
+    name:
+      - docker.io
+      - docker-ce
+      - docker-ce-cli
+      - docker-compose-plugin
+    state: absent
+  ignore_errors: yes
+
+# kubeadm
+- name: Stop kubelet if running
+  systemd:
+    name: kubelet
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Unhold Kubernetes packages
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  ignore_errors: yes
+
+- name: Remove kubeadm packages
+  apt:
+    name:
+      - kubeadm
+      - kubelet
+      - kubectl
+    state: absent
+    purge: yes
+  ignore_errors: yes

@@ -1,0 +1,22 @@
+---
+# Configure k0s cluster nodes with prerequisites
+- name: Configure k0s cluster nodes
+  hosts: clients
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  roles:
+    - role: k0s
+      when: kube_node | default(false) | bool
+
+  post_tasks:
+    - name: Display node status
+      debug:
+        msg: "{{ inventory_hostname }} ({{ ansible_host }}) - k0s {{ k0s_role | default('not configured') }} - ready"
+      when: kube_node | default(false) | bool

@@ -1,0 +1,42 @@
+---
+# Storage prerequisites for Longhorn and other CSI drivers
+
+# Compatibility symlink for CSI drivers
+# These drivers hardcode /var/lib/kubelet but k0s uses /var/lib/k0s/kubelet
+- name: Check if k0s kubelet directory exists
+  stat:
+    path: /var/lib/k0s/kubelet
+  register: k0s_kubelet_dir
+
+- name: Remove existing /var/lib/kubelet if not a symlink
+  file:
+    path: /var/lib/kubelet
+    state: absent
+  when: k0s_kubelet_dir.stat.exists
+
+- name: Create kubelet symlink for k0s compatibility
+  file:
+    src: /var/lib/k0s/kubelet
+    dest: /var/lib/kubelet
+    state: link
+    force: yes
+  when: k0s_kubelet_dir.stat.exists
+
+# iSCSI for Longhorn
+- name: Install open-iscsi for Longhorn
+  apt:
+    name: open-iscsi
+    state: present
+    update_cache: yes
+
+- name: Enable iscsid service
+  systemd:
+    name: iscsid
+    state: started
+    enabled: yes
+
+# NFS client for RWX volumes
+- name: Install NFS client
+  apt:
+    name: nfs-common
+    state: present

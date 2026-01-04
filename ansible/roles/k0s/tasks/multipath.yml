@@ -1,0 +1,36 @@
+---
+# Multipath configuration for Longhorn
+# See: https://longhorn.io/kb/troubleshooting-volume-with-multipath/
+
+- name: Check if multipath is installed
+  command: which multipathd
+  register: multipathd_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Configure multipath blacklist for Longhorn
+  copy:
+    dest: /etc/multipath.conf
+    content: |
+      defaults {
+          user_friendly_names yes
+      }
+
+      blacklist {
+          devnode "^sd[a-z0-9]+"
+      }
+    mode: '0644'
+  when: multipathd_check.rc == 0
+  register: multipath_config
+
+- name: Flush existing multipath devices
+  command: multipath -F
+  when: multipathd_check.rc == 0
+  ignore_errors: yes
+  changed_when: false
+
+- name: Restart multipathd
+  systemd:
+    name: multipathd
+    state: restarted
+  when: multipathd_check.rc == 0 and multipath_config.changed

@@ -1,0 +1,16 @@
+---
+# Main playbook - full k0s cluster setup
+#
+# Usage:
+#   ansible-playbook playbooks/main.yml                 # Full setup
+#   ansible-playbook playbooks/prereqs.yml              # Just node prereqs
+#   ansible-playbook playbooks/prereqs.yml --limit node-5  # Single node
+#   ansible-playbook playbooks/deploy.yml               # Just k0sctl apply
+#
+# This playbook is idempotent - safe to run multiple times.
+
+- name: Node prerequisites
+  import_playbook: prereqs.yml
+
+- name: Deploy cluster
+  import_playbook: deploy.yml
