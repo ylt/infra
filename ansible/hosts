@@ -1,11 +1,11 @@
 [clients]
-node-1 ansible_host=192.168.7.128 nomad_node=false kube_node=true k0s_role=worker hw_type=pi hw_model=pi4 hw_arch=arm64
-node-2 ansible_host=192.168.7.129 nomad_node=false kube_node=true k0s_role=worker hw_type=pi hw_model=pi4 hw_arch=arm64
-node-3 ansible_host=192.168.7.81 nomad_node=false kube_node=true k0s_role=worker hw_type=pi hw_model=pi4 hw_arch=arm64
-#ubuntu-node-4 ansible_host=192.168.7.136 nomad_node=true kube_node=false hw_type=pi hw_model=pi4 hw_arch=arm64
-node-5 ansible_host=192.168.6.188 nomad_node=false kube_node=true k0s_role=controller+worker hw_type=pi hw_model=pi5 hw_arch=arm64
-node-6 ansible_host=192.168.7.122 nomad_node=false kube_node=true k0s_role=worker hw_type=pi hw_model=pi5 hw_arch=arm64
-joe-desktop-vm ansible_host=192.168.6.12 nomad_node=false kube_node=true k0s_role=worker hw_type=hyperv hw_arch=amd64 k0s_labels=node-type=hyperv k0s_taints=node-type=hyperv:NoSchedule
+node-1 ansible_host=192.168.7.128 k0s_role=worker hw_model=pi4
+node-2 ansible_host=192.168.7.129 k0s_role=worker hw_model=pi4
+node-3 ansible_host=192.168.7.81 k0s_role=worker hw_model=pi4
+node-5 ansible_host=192.168.6.188 k0s_role=controller+worker hw_model=pi5
+node-6 ansible_host=192.168.7.122 k0s_role=worker hw_model=pi5
+joe-desktop-vm ansible_host=192.168.6.12 k0s_role=worker hw_model=hyperv k0s_labels=node-type=hyperv k0s_taints=node-type=hyperv:NoSchedule
 
 [clients:vars]
 ansible_python_interpreter=/usr/bin/python3
+kube_node=true
