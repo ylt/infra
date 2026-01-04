@@ -9,3 +9,9 @@ joe-desktop-vm ansible_host=192.168.6.12 k0s_role=worker hw_model=hyperv k0s_lab
 [clients:vars]
 ansible_python_interpreter=/usr/bin/python3
 kube_node=true
+
+[windows]
+joe-desktop ansible_host=192.168.7.96 ansible_user=theup
+
+[windows:vars]
+ansible_shell_type=powershell
