@@ -1,0 +1,51 @@
+---
+- name: Configure consul.conf
+  ansible.builtin.blockinfile:
+    path: /etc/systemd/resolved.conf.d/consul.conf
+    create: yes
+    block: |
+      [Resolve]
+      DNS=127.0.0.1:8600
+      DNSSEC=false
+      Domains=~consul
+      #DNSStubListenerExtra=172.17.0.1
+  notify: Restart systemd-resolved
+
+- name: Configure docker.conf
+  ansible.builtin.blockinfile:
+    path: /etc/systemd/resolved.conf.d/docker.conf
+    create: yes
+    block: |
+      [Resolve]
+      DNSStubListenerExtra=172.17.0.1
+  notify: Restart systemd-resolved
+
+- name: Configure Docker daemon
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "experimental": true,
+        "ip6tables": true,
+        "ipv6": true,
+        "fixed-cidr-v6": "2001:db8:1::/64",
+        "dns": ["172.17.0.1"]
+      }
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Docker
+
+- name: Deploy Nomad Configuration
+  ansible.builtin.template:
+    src: nomad_config.tpl
+    dest: /etc/nomad.d/nomad.hcl
+  become: yes
+  notify: Restart Nomad
+
+- name: Deploy Consul Configuration
+  ansible.builtin.template:
+    src: consul_config.tpl
+    dest: /etc/consul.d/consul.hcl
+  become: yes
+  notify: Restart Consul

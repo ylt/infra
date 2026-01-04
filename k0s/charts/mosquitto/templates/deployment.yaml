@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      {{- if .Values.migration.enabled }}
+      initContainers:
+        - name: migrate-data
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /mosquitto/data/.migrated ]; then
+                echo "No migration marker found, copying from NFS..."
+                cp -av /nfs-data/* /mosquitto/data/
+                touch /mosquitto/data/.migrated
+                echo "Migration complete"
+              else
+                echo "Already migrated, skipping"
+              fi
+          volumeMounts:
+            - name: data
+              mountPath: /mosquitto/data
+            - name: nfs-source
+              mountPath: /nfs-data
+              readOnly: true
+      {{- end }}
+      containers:
+        - name: mosquitto
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: mqtt
+              containerPort: {{ .Values.mqtt.port }}
+            - name: websocket
+              containerPort: {{ .Values.websocket.port }}
+          env:
+            - name: TZ
+              value: "Europe/London"
+          volumeMounts:
+            - name: data
+              mountPath: /mosquitto/data
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config
+        {{- if .Values.migration.enabled }}
+        - name: nfs-source
+          nfs:
+            server: {{ .Values.migration.nfsServer }}
+            path: {{ .Values.migration.nfsPath }}
+            readOnly: true
+        {{- end }}

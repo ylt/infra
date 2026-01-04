@@ -1,0 +1,24 @@
+image:
+  tag: latest
+
+env:
+  TZ: Europe/London
+  AUTH_PROVIDERS: oidc
+  AUTH_OIDC_ISSUER: https://auth.golden.wales/application/o/homarr/
+  AUTH_OIDC_CLIENT_NAME: Authentik
+
+# OIDC credentials from cluster-config secret
+envSecrets:
+  authOidcCredentials:
+    existingSecret: homarr-oidc
+    oidcClientId: oidc-client-id
+    oidcClientSecret: oidc-client-secret
+
+persistence:
+  homarrDatabase:
+    enabled: true
+    storageClassName: longhorn
+    size: 1Gi
+
+ingress:
+  enabled: false

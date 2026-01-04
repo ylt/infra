@@ -1,0 +1,37 @@
+image:
+  repository: lscr.io/linuxserver/jellyfin
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 10Gi
+
+media:
+  existingClaim: media-s3
+
+hwaccel:
+  enabled: true
+
+nodeSelector:
+  node-type: hyperv
+
+tolerations:
+  - key: node-type
+    operator: Equal
+    value: hyperv
+    effect: NoSchedule
+
+ingress:
+  enabled: true
+  host: jellyfin.golden.wales
+  authentik: false
+
+resources: {}
+
+dnsConfig:
+  options:
+    - name: ndots
+      value: "1"

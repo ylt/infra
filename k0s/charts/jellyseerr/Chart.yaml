@@ -1,0 +1,6 @@
+apiVersion: v2
+name: jellyseerr
+description: Media request manager for Jellyfin
+type: application
+version: 1.0.0
+appVersion: "latest"

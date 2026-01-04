@@ -1,0 +1,32 @@
+---
+
+- name: Check if hashi-up based install
+  ansible.builtin.stat:
+    path: /usr/local/bin/nomad
+  register: nomad_stat
+  tags:
+    - install-nomad
+
+- name: Stop nomad systemd
+  ansible.builtin.systemd:
+    name: nomad
+    state: stopped
+  when: nomad_stat.stat.exists and legacy_node == 'false'
+  tags:
+    - install-nomad
+
+- name: Delete Nomad service
+  ansible.builtin.file:
+    path: /etc/systemd/system/nomad.service
+    state: absent
+  when: nomad_stat.stat.exists and legacy_node == 'false'
+  tags:
+    - install-nomad
+
+- name: Delete Nomad binaries
+  ansible.builtin.file:
+      path: /usr/local/bin/nomad
+      state: absent
+  when: nomad_stat.stat.exists and legacy_node == 'false'
+  tags:
+      - install-nomad

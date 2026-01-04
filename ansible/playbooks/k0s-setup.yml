@@ -1,0 +1,9 @@
+---
+- name: Setup k0s Kubernetes cluster
+  hosts: clients
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: k0s
+      when: kube_node | bool

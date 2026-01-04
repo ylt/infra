@@ -1,0 +1,6 @@
+# Arr suite API keys
+# Copy to terraform.tfvars and fill in values from each app's Settings > General > API Key
+sonarr_api_key   = "your-sonarr-api-key"
+radarr_api_key   = "your-radarr-api-key"
+prowlarr_api_key = "your-prowlarr-api-key"
+jellyfin_api_key = "your-jellyfin-api-key"

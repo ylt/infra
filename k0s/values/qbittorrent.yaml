@@ -1,0 +1,23 @@
+image:
+  repository: lscr.io/linuxserver/qbittorrent
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 1Gi
+
+media:
+  existingClaim: media-s3
+
+vpn:
+  enabled: true
+
+ingress:
+  enabled: true
+  host: qbit.golden.wales
+  authentik: true
+
+resources: {}

@@ -1,0 +1,45 @@
+# Grafana configuration
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: longhorn
+
+# Datasources managed via Terraform
+
+# Ingress via Traefik IngressRoute (we'll create separately)
+ingress:
+  enabled: false
+
+# Admin credentials - will be overridden by Authentik
+adminUser: admin
+
+# Grafana configuration
+grafana.ini:
+  server:
+    root_url: https://grafana.golden.wales
+  auth:
+    disable_login_form: false
+  auth.generic_oauth:
+    enabled: true
+    name: Authentik
+    allow_sign_up: true
+    client_id: grafana
+    client_secret: ${GRAFANA_OAUTH_CLIENT_SECRET}
+    scopes: openid profile email
+    auth_url: https://auth.golden.wales/application/o/authorize/
+    token_url: https://auth.golden.wales/application/o/token/
+    api_url: https://auth.golden.wales/application/o/userinfo/
+    role_attribute_path: contains(groups[*], 'Grafana Admins') && 'Admin' || 'Viewer'
+
+# Environment variables for secrets
+envFromSecrets:
+  - name: grafana-oauth
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

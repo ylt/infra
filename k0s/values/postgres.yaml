@@ -1,0 +1,31 @@
+# PostgreSQL configuration
+
+image:
+  repository: postgres
+  tag: "16"
+  pullPolicy: IfNotPresent
+
+# Service - LoadBalancer for external access during migration
+service:
+  type: LoadBalancer
+  port: 5432
+
+# Persistence
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: longhorn
+
+# Resources
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Vault Secrets Operator
+vault:
+  enabled: true
+  role: postgres

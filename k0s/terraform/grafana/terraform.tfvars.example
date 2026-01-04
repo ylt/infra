@@ -1,0 +1,3 @@
+# Grafana authentication
+# Copy to terraform.tfvars and fill in admin credentials
+grafana_auth = "admin:your-grafana-admin-password"

@@ -1,0 +1,2 @@
+# Kyverno policies configuration
+# VPN sidecar uses WireGuard - config from wg-peer-config Secret in vpn-gateway namespace

@@ -1,0 +1,47 @@
+# Govee2MQTT configuration
+
+# Host network for multicast LAN discovery
+hostNetwork: true
+
+image:
+  repository: ghcr.io/wez/govee2mqtt
+  tag: latest
+  pullPolicy: Always
+
+# HTTP API port
+ui:
+  port: 8056
+
+# MQTT settings (k8s mosquitto)
+mqtt:
+  host: mosquitto.mosquitto.svc.cluster.local
+  port: 1883
+
+# Temperature unit
+temperature: celsius
+
+# Persistence
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: longhorn
+
+# Ingress
+ingress:
+  enabled: true
+  host: govee.golden.wales
+  authentik: true
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Vault Secrets Operator settings
+vault:
+  enabled: true
+  role: govee2mqtt

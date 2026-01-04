@@ -1,0 +1,47 @@
+{{- if .Values.s3.enabled }}
+# PersistentVolume for media storage via Rclone CSI (Garage S3 backend)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-rclone-pv
+spec:
+  capacity:
+    storage: {{ .Values.s3.size }}
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  claimRef:
+    namespace: {{ .Release.Namespace }}
+    name: media-s3
+  mountOptions:
+    - vfs-cache-mode=writes
+    - dir-cache-time=30s
+    - dir-perms=0777
+    - file-perms=0666
+    - umask=0
+    - uid=1000
+    - gid=1000
+    - allow-other
+  csi:
+    driver: rclone.csi.veloxpack.io
+    volumeHandle: media-rclone
+    volumeAttributes:
+      remote: "garage"
+      remotePath: "media"
+    nodePublishSecretRef:
+      name: rclone-media-secret
+      namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-s3
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: {{ .Values.s3.size }}
+  volumeName: media-rclone-pv
+{{- end }}

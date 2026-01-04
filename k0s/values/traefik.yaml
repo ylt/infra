@@ -1,0 +1,44 @@
+# Traefik Ingress Controller
+
+# Use LoadBalancer service type (MetalLB provides the IP)
+service:
+  type: LoadBalancer
+
+# Enable dashboard with authentik protection
+ingressRoute:
+  dashboard:
+    enabled: true
+    matchRule: Host(`traefik.golden.wales`)
+    entryPoints:
+      - websecure
+    middlewares:
+      - name: authentik
+        namespace: traefik
+    tls: {}
+
+# Ports configuration (use high ports internally, service maps to 80/443)
+ports:
+  web:
+    port: 8000
+    exposedPort: 80
+  websecure:
+    port: 8443
+    exposedPort: 443
+    http3:
+      enabled: true
+      advertisedPort: 443
+  traefik:
+    port: 9000
+    exposedPort: 9000
+    expose:
+      default: true
+
+# Enable access logs
+logs:
+  access:
+    enabled: true
+
+# Allow cross-namespace middleware references
+providers:
+  kubernetesCRD:
+    allowCrossNamespace: true

@@ -1,0 +1,3 @@
+# Cloudflared tunnel configuration
+tunnel:
+  token: ""  # Set in cloudflared-secrets.yaml

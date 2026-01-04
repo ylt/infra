@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      {{- if .Values.migration.enabled }}
+      initContainers:
+        - name: migrate-data
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /app/data/configuration.yaml ]; then
+                echo "No existing config found, copying from NFS..."
+                cp -av /nfs-data/* /app/data/
+                echo "Migration complete"
+              else
+                echo "Config already exists, skipping migration"
+              fi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: nfs-source
+              mountPath: /nfs-data
+              readOnly: true
+      {{- end }}
+      containers:
+        - name: zigbee2mqtt
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.port }}
+          env:
+            - name: TZ
+              value: "Europe/London"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+        {{- if .Values.migration.enabled }}
+        - name: nfs-source
+          nfs:
+            server: {{ .Values.migration.nfsServer }}
+            path: {{ .Values.migration.nfsPath }}
+            readOnly: true
+        {{- end }}

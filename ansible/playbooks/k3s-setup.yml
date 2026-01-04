@@ -1,0 +1,24 @@
+---
+- name: Deploy k3s Kubernetes cluster
+  hosts: clients
+  become: yes
+  gather_facts: yes
+  serial:
+    - 1  # Install master first
+    - "100%"  # Then all workers in parallel
+  roles:
+    - k3s
+
+- name: Display cluster status
+  hosts: clients
+  become: yes
+  tasks:
+    - name: Get k3s status on master
+      command: kubectl get nodes
+      register: cluster_status
+      when: is_master | bool
+
+    - name: Show cluster nodes
+      debug:
+        msg: "{{ cluster_status.stdout_lines }}"
+      when: is_master | bool

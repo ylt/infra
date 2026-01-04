@@ -1,0 +1,37 @@
+# Longhorn distributed block storage
+
+defaultSettings:
+  # 2 replicas for 2 worker nodes
+  defaultReplicaCount: 2
+  # Allow system components on Hyper-V and disk-pressure nodes
+  taintToleration: "node-type=hyperv:NoSchedule;node.kubernetes.io/disk-pressure:NoSchedule"
+
+# Tolerate Hyper-V and disk-pressure taints
+longhornManager:
+  tolerations:
+    - key: node-type
+      operator: Equal
+      value: hyperv
+      effect: NoSchedule
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+
+longhornDriver:
+  tolerations:
+    - key: node-type
+      operator: Equal
+      value: hyperv
+      effect: NoSchedule
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+
+# Expose Longhorn UI via LoadBalancer
+service:
+  ui:
+    type: LoadBalancer
+
+persistence:
+  defaultClass: true
+  defaultClassReplicaCount: 2

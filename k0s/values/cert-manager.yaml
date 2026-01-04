@@ -1,0 +1,16 @@
+# cert-manager configuration
+
+# Install CRDs with helm
+crds:
+  enabled: true
+
+# Replica count
+replicaCount: 1
+
+# Webhook replica count
+webhook:
+  replicaCount: 1
+
+# CA injector replica count
+cainjector:
+  replicaCount: 1

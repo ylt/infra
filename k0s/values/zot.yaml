@@ -1,0 +1,14 @@
+# Zot Container Registry with OIDC auth
+# Note: configFiles with OIDC secret is in zot-secrets.yaml
+
+service:
+  type: ClusterIP
+  port: 5000
+
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClassName: longhorn
+
+mountConfig: true
+# configFiles defined in zot-secrets.yaml (contains OIDC client secret)

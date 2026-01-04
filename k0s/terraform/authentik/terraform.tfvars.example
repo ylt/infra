@@ -1,0 +1,2 @@
+# Get token from: Authentik Admin -> Directory -> Tokens and App passwords -> Create
+authentik_token = "your-api-token-here"

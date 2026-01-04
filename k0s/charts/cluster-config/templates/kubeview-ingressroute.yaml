@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kubeview
+  namespace: kubeview
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`kubeview.golden.wales`)
+      kind: Rule
+      middlewares:
+        - name: authentik
+          namespace: traefik
+      services:
+        - name: kubeview
+          port: 8000
+  tls: {}

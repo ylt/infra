@@ -1,0 +1,26 @@
+image:
+  repository: openhab/openhab
+  tag: "4.3.0"
+  pullPolicy: IfNotPresent
+
+# UI port
+port: 8080
+
+# Persistence
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: longhorn
+
+# Ingress
+ingress:
+  enabled: true
+  host: openhab.golden.wales
+
+# Resources
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    memory: 1Gi

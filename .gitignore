@@ -1,0 +1,19 @@
+# OS/IDE junk
+.DS_Store
+.idea/
+
+# Terraform state (contains all secrets in plaintext)
+**/*.tfstate
+**/*.tfstate.backup
+**/.terraform/
+
+# Terraform variables (contain API keys, tokens)
+**/terraform.tfvars
+
+# Helm values secrets files
+k0s/values/*-secrets.yaml
+
+# Keep example files
+!**/*.example
+!**/terraform.tfvars.example
+!k0s/values/*-secrets.yaml.example

@@ -1,0 +1,30 @@
+---
+# Deploy Spegel containerd config to k0s nodes
+- name: Configure containerd for Spegel
+  hosts: clients
+  become: yes
+  vars:
+    k0s_service: "{{ 'k0scontroller' if k0s_role == 'controller+worker' else 'k0sworker' }}"
+  tasks:
+    - name: Create containerd.d directory
+      file:
+        path: /etc/k0s/containerd.d
+        state: directory
+        mode: '0755'
+
+    - name: Deploy Spegel containerd config
+      copy:
+        dest: /etc/k0s/containerd.d/spegel.toml
+        content: |
+          [plugins."io.containerd.grpc.v1.cri".registry]
+            config_path = "/etc/containerd/certs.d"
+          [plugins."io.containerd.grpc.v1.cri".containerd]
+            discard_unpacked_layers = false
+        mode: '0644'
+      register: containerd_config
+
+    - name: Restart k0s service
+      systemd:
+        name: "{{ k0s_service }}"
+        state: restarted
+      when: containerd_config.changed

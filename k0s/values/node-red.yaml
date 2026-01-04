@@ -1,0 +1,26 @@
+# Node-RED configuration
+
+image:
+  repository: nodered/node-red
+  tag: latest
+  pullPolicy: Always
+
+port: 1880
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: longhorn
+
+ingress:
+  enabled: true
+  host: node-red.golden.wales
+  authentik: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

@@ -1,0 +1,29 @@
+# Cloudflare DNS credentials for cert-manager
+cloudflare:
+  apiToken: ""  # Set in cluster-config-secrets.yaml
+
+# Let's Encrypt configuration
+letsencrypt:
+  email: joe@golden.wales
+  server: https://acme-v02.api.letsencrypt.org/directory
+
+# DNS zones to manage
+dnsZones:
+  - golden.wales
+
+# Homarr credentials
+homarr:
+  oidc:
+    clientId: homarr
+    clientSecret: ""  # Set in cluster-config-secrets.yaml
+  dbEncryptionKey: ""  # Set in cluster-config-secrets.yaml
+
+# Garage admin token
+garage:
+  adminToken: ""  # Set in cluster-config-secrets.yaml
+
+# Rclone S3 credentials for media storage
+rclone:
+  endpoint: "http://192.168.7.207:3900"
+  accessKeyId: ""  # Set in cluster-config-secrets.yaml
+  secretAccessKey: ""  # Set in cluster-config-secrets.yaml

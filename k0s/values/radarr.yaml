@@ -1,0 +1,20 @@
+image:
+  repository: lscr.io/linuxserver/radarr
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 1Gi
+
+media:
+  existingClaim: media-s3
+
+ingress:
+  enabled: true
+  host: radarr.golden.wales
+  authentik: true
+
+resources: {}

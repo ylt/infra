@@ -1,0 +1,200 @@
+---
+# Ubuntu Upgrade from Lunar (23.04) to Noble (24.04 LTS)
+
+- name: Backup current apt sources
+  copy:
+    src: /etc/apt/sources.list
+    dest: /etc/apt/sources.list.backup
+    remote_src: yes
+
+- name: Fix EOL repository URLs (point to old-releases)
+  replace:
+    path: /etc/apt/sources.list
+    regexp: 'http://ports.ubuntu.com/ubuntu-ports'
+    replace: 'http://old-releases.ubuntu.com/ubuntu'
+
+- name: Fix EOL repository URLs (archive.ubuntu.com)
+  replace:
+    path: /etc/apt/sources.list
+    regexp: 'http://archive.ubuntu.com/ubuntu'
+    replace: 'http://old-releases.ubuntu.com/ubuntu'
+
+- name: Check if HashiCorp repo exists (new format)
+  stat:
+    path: /etc/apt/sources.list.d/apt_releases_hashicorp_com.list
+  register: hashicorp_repo_new
+
+- name: Check if HashiCorp repo exists (old format)
+  stat:
+    path: /etc/apt/sources.list.d/hashicorp.list
+  register: hashicorp_repo_old
+
+- name: Disable HashiCorp repo temporarily (new format)
+  command: mv /etc/apt/sources.list.d/apt_releases_hashicorp_com.list /etc/apt/sources.list.d/apt_releases_hashicorp_com.list.disabled
+  when: hashicorp_repo_new.stat.exists
+
+- name: Disable HashiCorp repo temporarily (old format)
+  command: mv /etc/apt/sources.list.d/hashicorp.list /etc/apt/sources.list.d/hashicorp.list.disabled
+  when: hashicorp_repo_old.stat.exists
+
+- name: Update apt cache with old-releases
+  apt:
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Upgrade all packages on current release
+  apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Install update-manager-core
+  apt:
+    name: update-manager-core
+    state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Configure release upgrader to allow normal releases
+  lineinfile:
+    path: /etc/update-manager/release-upgrades
+    regexp: '^Prompt='
+    line: 'Prompt=normal'
+
+- name: Check current Ubuntu version
+  command: lsb_release -cs
+  register: current_release
+  changed_when: false
+
+- name: Download Mantic version-specific upgrader
+  get_url:
+    url: http://old-releases.ubuntu.com/ubuntu/dists/mantic-updates/main/dist-upgrader-all/current/mantic.tar.gz
+    dest: /tmp/mantic.tar.gz
+    mode: '0644'
+  when: current_release.stdout == "lunar"
+
+- name: Create upgrader directory
+  file:
+    path: /tmp/upgrader-mantic
+    state: directory
+  when: current_release.stdout == "lunar"
+
+- name: Extract Mantic upgrader
+  unarchive:
+    src: /tmp/mantic.tar.gz
+    dest: /tmp/upgrader-mantic
+    remote_src: yes
+  when: current_release.stdout == "lunar"
+
+- name: Run Mantic upgrader
+  shell: |
+    cd /tmp/upgrader-mantic
+    export DEBIAN_FRONTEND=noninteractive
+    export UCF_FORCE_CONFFOLD=1
+    export NEEDRESTART_MODE=a
+    yes '' | ./mantic --frontend=DistUpgradeViewNonInteractive 2>&1 | tee /tmp/upgrade-mantic.log
+  when: current_release.stdout == "lunar"
+  register: upgrade_to_mantic
+  async: 3600
+  poll: 30
+  failed_when: upgrade_to_mantic.rc not in [0, 1]
+
+- name: Reboot after Mantic upgrade
+  shell: sleep 2 && reboot
+  async: 1
+  poll: 0
+  when: upgrade_to_mantic.changed
+  ignore_errors: yes
+
+- name: Wait for system to go down
+  pause:
+    seconds: 30
+  when: upgrade_to_mantic.changed
+
+- name: Wait for system to come back online
+  wait_for_connection:
+    delay: 10
+    timeout: 300
+  when: upgrade_to_mantic.changed
+
+- name: Check Ubuntu version after first upgrade
+  command: lsb_release -cs
+  register: current_release_2
+  changed_when: false
+
+- name: Download Noble version-specific upgrader
+  get_url:
+    url: http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz
+    dest: /tmp/noble.tar.gz
+    mode: '0644'
+  when: current_release_2.stdout == "mantic"
+
+- name: Create upgrader directory for Noble
+  file:
+    path: /tmp/upgrader-noble
+    state: directory
+  when: current_release_2.stdout == "mantic"
+
+- name: Extract Noble upgrader
+  unarchive:
+    src: /tmp/noble.tar.gz
+    dest: /tmp/upgrader-noble
+    remote_src: yes
+  when: current_release_2.stdout == "mantic"
+
+- name: Run Noble upgrader
+  shell: cd /tmp/upgrader-noble && DEBIAN_FRONTEND=noninteractive ./noble --frontend=DistUpgradeViewNonInteractive 2>&1 | tee /tmp/upgrade-noble.log
+  when: current_release_2.stdout == "mantic"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  register: upgrade_to_noble
+  async: 3600
+  poll: 30
+  failed_when: upgrade_to_noble.rc not in [0, 1]
+
+- name: Reboot after Noble upgrade
+  shell: sleep 2 && reboot
+  async: 1
+  poll: 0
+  when: upgrade_to_noble.changed
+  ignore_errors: yes
+
+- name: Wait for system to go down after Noble upgrade
+  pause:
+    seconds: 30
+  when: upgrade_to_noble.changed
+
+- name: Wait for system to come back online after Noble upgrade
+  wait_for_connection:
+    delay: 10
+    timeout: 300
+  when: upgrade_to_noble.changed
+
+- name: Update apt cache on Noble
+  apt:
+    update_cache: yes
+
+- name: Final system upgrade
+  apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+# HashiCorp repo intentionally left disabled - will be managed separately if needed
+
+- name: Final apt update
+  apt:
+    update_cache: yes
+
+- name: Display final Ubuntu version
+  command: lsb_release -a
+  register: final_version
+  changed_when: false
+
+- name: Show final version
+  debug:
+    var: final_version.stdout_lines

@@ -1,0 +1,26 @@
+authentik:
+  secret_key: ""  # Set in authentik-secrets.yaml
+  error_reporting:
+    enabled: false
+  postgresql:
+    password: ""  # Set in authentik-secrets.yaml
+
+server:
+  ingress:
+    enabled: true
+    hosts:
+      - auth.golden.wales
+
+postgresql:
+  enabled: true
+  auth:
+    password: ""  # Set in authentik-secrets.yaml
+  primary:
+    persistence:
+      storageClass: longhorn
+    nodeAffinityPreset:
+      type: soft
+      key: kubernetes.io/hostname
+      values:
+        - node-5
+        - node-6

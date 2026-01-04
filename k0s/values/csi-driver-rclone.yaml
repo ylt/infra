@@ -1,0 +1,19 @@
+# Rclone CSI Driver for Garage S3 backend
+
+# k0s uses a different kubelet path
+# NOTE: Chart has a bug where pods-mount-dir volume doesn't use kubeletDir.
+# After helmfile sync, run:
+#   kubectl patch daemonset -n kube-system csi-rclone-node --type='json' -p='[
+#     {"op": "replace", "path": "/spec/template/spec/containers/2/volumeMounts/0/mountPath", "value": "/var/lib/k0s/kubelet/pods"},
+#     {"op": "replace", "path": "/spec/template/spec/volumes/0/hostPath/path", "value": "/var/lib/k0s/kubelet/pods"}
+#   ]'
+kubeletDir: /var/lib/k0s/kubelet
+
+node:
+  # Tolerate all taints to run on all nodes including Hyper-V
+  tolerations:
+    - operator: Exists
+  # Increase liveness probe tolerance to reduce restart loops
+  livenessProbe:
+    failureThreshold: 10
+    initialDelaySeconds: 60

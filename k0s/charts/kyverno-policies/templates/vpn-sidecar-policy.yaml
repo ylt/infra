@@ -1,0 +1,59 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: inject-vpn-sidecar
+  annotations:
+    policies.kyverno.io/title: Inject VPN Sidecar
+    policies.kyverno.io/description: >-
+      Injects a WireGuard client sidecar into pods in namespaces labeled with
+      vpn-egress=true. All pod traffic will route through the VPN gateway.
+spec:
+  rules:
+    - name: inject-wireguard-client-sidecar
+      match:
+        any:
+          # Match pods in namespaces labeled vpn-egress=true
+          - resources:
+              kinds:
+                - Pod
+              namespaceSelector:
+                matchLabels:
+                  vpn-egress: "true"
+          # Match pods directly labeled vpn-egress=true
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  vpn-egress: "true"
+      exclude:
+        any:
+          - resources:
+              selector:
+                matchLabels:
+                  vpn-sidecar-injected: "true"
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              vpn-sidecar-injected: "true"
+          spec:
+            containers:
+              - name: vpn-client
+                image: zot.golden.wales/wg-client:v3
+                imagePullPolicy: Always
+                securityContext:
+                  privileged: true
+                env:
+                  - name: WG_CONFIG
+                    value: "/config/wg0.conf"
+                  - name: KEEP_ROUTES
+                    value: "10.0.0.0/8"
+                volumeMounts:
+                  - name: wg-config
+                    mountPath: /config
+                    readOnly: true
+            volumes:
+              - name: wg-config
+                secret:
+                  secretName: wg-peer-config

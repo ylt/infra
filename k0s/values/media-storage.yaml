@@ -1,0 +1,13 @@
+storageClass: longhorn
+size: 50Gi
+
+# JuiceFS volume - disabled, replaced by Mountpoint S3
+juicefs:
+  enabled: false
+  size: 100Gi
+
+# Mountpoint S3 volume (Garage backend)
+s3:
+  enabled: true
+  size: 100Gi
+  bucket: media

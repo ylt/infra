@@ -1,0 +1,422 @@
+repositories:
+  - name: metallb
+    url: https://metallb.github.io/metallb
+  - name: traefik
+    url: https://traefik.github.io/charts
+  - name: longhorn
+    url: https://charts.longhorn.io
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: hashicorp
+    url: https://helm.releases.hashicorp.com
+  - name: authentik
+    url: https://charts.goauthentik.io
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: kubeview
+    url: https://kubeview.benco.io/deploy/helm
+  - name: zot
+    url: https://zotregistry.dev/helm-charts
+  - name: kyverno
+    url: https://kyverno.github.io/kyverno
+  - name: emberstack
+    url: https://emberstack.github.io/helm-charts
+  - name: derwitt
+    url: https://charts.derwitt.dev
+  # Bitnami removed - doesn't support ARM and being sunset
+  - name: juicefs
+    url: https://juicedata.github.io/charts/
+  - name: homarr-labs
+    url: https://homarr-labs.github.io/charts/
+  # Rclone CSI uses OCI registry - no repo needed
+
+releases:
+  - name: reflector
+    namespace: reflector
+    createNamespace: true
+    chart: emberstack/reflector
+    version: 7.1.288
+
+  # Installed via kubectl apply from GitHub (OCI registry requires auth)
+  # kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.30/deploy/local-path-storage.yaml
+  # - name: local-path-provisioner
+  #   namespace: local-path-storage
+  #   createNamespace: true
+  #   chart: oci://dp.apps.rancher.io/charts/local-path-provisioner
+  #   version: 0.0.30
+  #   values:
+  #     - values/local-path-provisioner.yaml
+
+  - name: metallb
+    namespace: metallb-system
+    createNamespace: true
+    chart: metallb/metallb
+    version: 0.14.9
+    values:
+      - values/metallb.yaml
+
+  - name: cert-manager
+    namespace: cert-manager
+    createNamespace: true
+    chart: jetstack/cert-manager
+    version: 1.16.2
+    needs:
+      - metallb-system/metallb
+    values:
+      - values/cert-manager.yaml
+
+  - name: cluster-config
+    namespace: cert-manager
+    chart: ./charts/cluster-config
+    needs:
+      - cert-manager/cert-manager
+    values:
+      - values/cluster-config.yaml
+      - values/cluster-config-secrets.yaml
+
+  - name: traefik
+    namespace: traefik
+    createNamespace: true
+    chart: traefik/traefik
+    version: 32.1.1
+    needs:
+      - metallb-system/metallb
+      - cert-manager/cert-manager
+    values:
+      - values/traefik.yaml
+
+  - name: longhorn
+    namespace: longhorn-system
+    createNamespace: true
+    chart: longhorn/longhorn
+    version: 1.10.1
+    values:
+      - values/longhorn.yaml
+
+  - name: vault
+    namespace: vault
+    createNamespace: true
+    chart: hashicorp/vault
+    version: 0.29.1
+    needs:
+      - longhorn-system/longhorn
+      - metallb-system/metallb
+    values:
+      - values/vault.yaml
+
+  - name: vault-secrets-operator
+    namespace: vault-secrets-operator
+    createNamespace: true
+    chart: hashicorp/vault-secrets-operator
+    version: 0.10.0
+    needs:
+      - vault/vault
+    values:
+      - values/vault-secrets-operator.yaml
+
+  - name: postgres
+    namespace: postgres
+    createNamespace: true
+    chart: ./charts/postgres
+    needs:
+      - longhorn-system/longhorn
+      - vault-secrets-operator/vault-secrets-operator
+    values:
+      - values/postgres.yaml
+
+  - name: mosquitto
+    namespace: mosquitto
+    createNamespace: true
+    chart: ./charts/mosquitto
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/mosquitto.yaml
+
+  - name: zigbee2mqtt
+    namespace: zigbee2mqtt
+    createNamespace: true
+    chart: ./charts/zigbee2mqtt
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+      - mosquitto/mosquitto
+    values:
+      - values/zigbee2mqtt.yaml
+
+  - name: govee2mqtt
+    namespace: govee2mqtt
+    createNamespace: true
+    chart: ./charts/govee2mqtt
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+      - mosquitto/mosquitto
+      - vault/vault
+    values:
+      - values/govee2mqtt.yaml
+
+  - name: homeassistant
+    namespace: homeassistant
+    createNamespace: true
+    chart: ./charts/homeassistant
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/homeassistant.yaml
+
+  - name: node-red
+    namespace: node-red
+    createNamespace: true
+    chart: ./charts/node-red
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/node-red.yaml
+
+  - name: cloudflared
+    namespace: cloudflared
+    createNamespace: true
+    chart: ./charts/cloudflared
+    needs:
+      - traefik/traefik
+    values:
+      - values/cloudflared.yaml
+      - values/cloudflared-secrets.yaml
+
+  - name: authentik
+    namespace: authentik
+    createNamespace: true
+    chart: authentik/authentik
+    version: 2025.10.3
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/authentik.yaml
+      - values/authentik-secrets.yaml
+
+  - name: loki
+    installed: false
+    namespace: loki
+    createNamespace: true
+    chart: grafana/loki
+    version: 6.23.0
+    needs:
+      - longhorn-system/longhorn
+    values:
+      - values/loki.yaml
+
+  - name: alloy
+    namespace: loki
+    chart: grafana/alloy
+    version: 0.10.1
+    needs:
+      - loki/loki
+    values:
+      - values/alloy.yaml
+
+  - name: grafana
+    namespace: grafana
+    createNamespace: true
+    chart: grafana/grafana
+    version: 8.8.2
+    needs:
+      - loki/loki
+      - traefik/traefik
+    values:
+      - values/grafana.yaml
+
+  - name: spegel
+    namespace: spegel
+    createNamespace: true
+    chart: oci://ghcr.io/spegel-org/helm-charts/spegel
+    version: 0.6.0
+    values:
+      - values/spegel.yaml
+
+  - name: kubeview
+    namespace: kubeview
+    createNamespace: true
+    chart: kubeview/kubeview
+    version: 2.0.5
+    needs:
+      - traefik/traefik
+    values:
+      - values/kubeview.yaml
+
+  - name: vpn-gateway
+    namespace: vpn-gateway
+    createNamespace: true
+    chart: ./charts/vpn-gateway
+    needs:
+      - cert-manager/cluster-config
+    values:
+      - values/vpn-gateway.yaml
+      - values/vpn-gateway-secrets.yaml
+
+  - name: zot
+    namespace: zot
+    createNamespace: true
+    chart: zot/zot
+    version: 0.1.95
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/zot.yaml
+      - values/zot-secrets.yaml
+
+  - name: kyverno
+    namespace: kyverno
+    createNamespace: true
+    chart: kyverno/kyverno
+    version: 3.3.4
+    values:
+      - values/kyverno.yaml
+
+  - name: kyverno-policies
+    namespace: kyverno
+    chart: ./charts/kyverno-policies
+    needs:
+      - kyverno/kyverno
+    values:
+      - values/kyverno-policies.yaml
+
+  # Media / Arr Suite
+  - name: media-storage
+    namespace: media
+    createNamespace: true
+    chart: ./charts/media-storage
+    needs:
+      - longhorn-system/longhorn
+    values:
+      - values/media-storage.yaml
+
+  - name: prowlarr
+    namespace: media
+    chart: ./charts/prowlarr
+    needs:
+      - media/media-storage
+      - traefik/traefik
+    values:
+      - values/prowlarr.yaml
+
+  - name: sonarr
+    namespace: media
+    chart: ./charts/sonarr
+    needs:
+      - media/media-storage
+      - media/prowlarr
+      - traefik/traefik
+    values:
+      - values/sonarr.yaml
+
+  - name: radarr
+    namespace: media
+    chart: ./charts/radarr
+    needs:
+      - media/media-storage
+      - media/prowlarr
+      - traefik/traefik
+    values:
+      - values/radarr.yaml
+
+  - name: bazarr
+    namespace: media
+    chart: ./charts/bazarr
+    needs:
+      - media/media-storage
+      - media/sonarr
+      - media/radarr
+      - traefik/traefik
+    values:
+      - values/bazarr.yaml
+
+  - name: qbittorrent
+    namespace: media
+    chart: ./charts/qbittorrent
+    needs:
+      - media/media-storage
+      - vpn-gateway/vpn-gateway
+      - kyverno/kyverno-policies
+      - traefik/traefik
+    values:
+      - values/qbittorrent.yaml
+
+  - name: jellyfin
+    namespace: media
+    chart: ./charts/jellyfin
+    needs:
+      - media/media-storage
+      - traefik/traefik
+    values:
+      - values/jellyfin.yaml
+
+  - name: jellyseerr
+    namespace: media
+    chart: ./charts/jellyseerr
+    needs:
+      - media/jellyfin
+      - media/sonarr
+      - media/radarr
+      - traefik/traefik
+    values:
+      - values/jellyseerr.yaml
+
+  # Distributed Storage (Garage + JuiceFS)
+  - name: garage
+    namespace: garage
+    createNamespace: true
+    chart: derwitt/garage
+    version: 1.1.2
+    needs:
+      - metallb-system/metallb
+    values:
+      - values/garage.yaml
+      - values/garage-secrets.yaml
+
+  # Redis for JuiceFS is deployed via cluster-config (simple Redis, not Bitnami)
+  # Disabled - replaced by mountpoint-s3-csi-driver
+  - name: juicefs-csi-driver
+    installed: false
+    namespace: kube-system
+    chart: juicefs/juicefs-csi-driver
+    version: 0.30.4
+    needs:
+      - garage/garage
+      - cert-manager/cluster-config  # includes Redis for JuiceFS
+    values:
+      - values/juicefs-csi-driver.yaml
+
+  - name: csi-driver-rclone
+    namespace: kube-system
+    chart: oci://ghcr.io/veloxpack/charts/csi-driver-rclone
+    needs:
+      - garage/garage
+    values:
+      - values/csi-driver-rclone.yaml
+
+  - name: homarr
+    namespace: homarr
+    chart: homarr-labs/homarr
+    version: 8.7.0
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+      - cert-manager/cluster-config
+    values:
+      - values/homarr.yaml
+
+  - name: openhab
+    namespace: openhab
+    createNamespace: true
+    chart: ./charts/openhab
+    needs:
+      - longhorn-system/longhorn
+      - traefik/traefik
+    values:
+      - values/openhab.yaml

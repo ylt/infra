@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: wireguard
+          image: lscr.io/linuxserver/wireguard:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/London"
+            - name: SERVERURL
+              value: "{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: SERVERPORT
+              value: "51820"
+            - name: PEERS
+              value: "1"
+            - name: PEERDNS
+              value: "{{ .Values.dns }}"
+            - name: INTERNAL_SUBNET
+              value: "{{ .Values.wireguard.internalSubnet }}"
+            - name: ALLOWEDIPS
+              value: "0.0.0.0/0"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+          ports:
+            - containerPort: 51820
+              protocol: UDP
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: mullvad-config
+              mountPath: /config/wg_confs/wg1.conf
+              subPath: wg1.conf
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-config
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+            type: Directory
+        - name: mullvad-config
+          secret:
+            secretName: {{ .Release.Name }}-mullvad

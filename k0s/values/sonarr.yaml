@@ -1,0 +1,20 @@
+image:
+  repository: lscr.io/linuxserver/sonarr
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 1Gi
+
+media:
+  existingClaim: media-s3
+
+ingress:
+  enabled: true
+  host: sonarr.golden.wales
+  authentik: true
+
+resources: {}

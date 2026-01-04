@@ -1,0 +1,111 @@
+---
+- name: Install Consul on nodes missing it
+  hosts: clients
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Check if Consul is installed
+      command: which consul
+      register: consul_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install required dependencies
+      apt:
+        name:
+          - wget
+          - unzip
+        state: present
+      when: consul_check.rc != 0
+
+    - name: Download Consul 1.16.2
+      get_url:
+        url: https://releases.hashicorp.com/consul/1.16.2/consul_1.16.2_linux_arm64.zip
+        dest: /tmp/consul.zip
+        mode: '0644'
+      when: consul_check.rc != 0
+
+    - name: Unzip Consul
+      unarchive:
+        src: /tmp/consul.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+        mode: '0755'
+      when: consul_check.rc != 0
+
+    - name: Create Consul user
+      user:
+        name: consul
+        system: yes
+        shell: /bin/false
+      when: consul_check.rc != 0
+
+    - name: Create Consul directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: '0755'
+      loop:
+        - /opt/consul
+        - /etc/consul.d
+      when: consul_check.rc != 0
+
+    - name: Copy Consul client config
+      copy:
+        src: /Users/joe/projects/infra/nomad/provision/consul-client.hcl
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: '0644'
+      when: consul_check.rc != 0
+
+    - name: Create Consul systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Consul
+          Documentation=https://www.consul.io/
+          Requires=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=consul
+          Group=consul
+          ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d/
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillMode=process
+          Restart=on-failure
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/consul.service
+        mode: '0644'
+      when: consul_check.rc != 0
+
+    - name: Enable and start Consul service
+      systemd:
+        name: consul
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      when: consul_check.rc != 0
+
+    - name: Wait for Consul to be ready
+      wait_for:
+        port: 8500
+        delay: 5
+        timeout: 60
+      when: consul_check.rc != 0
+
+    - name: Display Consul version
+      command: consul version
+      register: consul_version
+      changed_when: false
+
+    - name: Show Consul version
+      debug:
+        var: consul_version.stdout_lines

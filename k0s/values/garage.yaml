@@ -1,0 +1,63 @@
+# Garage distributed S3-compatible object storage (all 6 nodes)
+
+# Use multi-arch image (supports ARM64 Raspberry Pi + amd64)
+image:
+  repository: dxflrs/garage
+  tag: v2.1.0
+
+garage:
+  # Generated with: openssl rand -hex 32
+  rpcSecret: ""  # Set in garage-secrets.yaml
+
+  # ConfigMap is managed by cluster-config (includes admin token)
+  existingConfigMap: "garage-config"
+
+  # Replication: data stored on 2 nodes for redundancy
+  replicationFactor: 2
+
+  # Storage paths inside container
+  metadataDir: /var/lib/garage/meta
+  dataDir: /var/lib/garage/data
+
+deployment:
+  kind: DaemonSet
+
+# Run as root to access hostPath volumes
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+  runAsNonRoot: false
+
+securityContext:
+  readOnlyRootFilesystem: false
+
+# Tolerate Hyper-V node taint
+tolerations:
+  - key: node-type
+    operator: Equal
+    value: hyperv
+    effect: NoSchedule
+
+persistence:
+  meta:
+    enabled: true
+    size: 2Gi
+    storageClass: local-path
+  data:
+    enabled: true
+    size: 50Gi
+    storageClass: local-path
+
+service:
+  # LoadBalancer for access from node network (mountpoint-s3 CSI driver)
+  type: LoadBalancer
+  s3:
+    api:
+      port: 3900
+    web:
+      port: 3902
+
+# RPC for inter-node communication
+rpc:
+  port: 3901

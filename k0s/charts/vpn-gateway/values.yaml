@@ -1,0 +1,21 @@
+# VPN Gateway - WireGuard Hub with Mullvad egress
+
+# WireGuard server settings
+wireguard:
+  # Internal subnet for peers
+  internalSubnet: "10.13.13.0/24"
+
+# Mullvad VPN connection (wg1)
+mullvad:
+  privateKey: ""
+  address: ""
+  publicKey: ""
+  endpoint: ""
+
+# DNS for connected clients
+dns: "10.96.0.10"
+
+# Persistent storage for config
+storage:
+  storageClass: longhorn
+  size: 1Gi

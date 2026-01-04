@@ -1,0 +1,48 @@
+---
+- name: Generate k0sctl.yaml hosts section
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    k0sctl_path: "{{ playbook_dir }}/../../k0s/k0sctl.yaml"
+
+  tasks:
+    - name: Build hosts list from inventory
+      set_fact:
+        k0s_hosts: |
+          {% for host in groups['clients'] %}
+          {% if hostvars[host].kube_node | default(false) | bool %}
+            - ssh:
+                address: {{ hostvars[host].ansible_host }}
+                user: joe
+                port: 22
+              role: {{ hostvars[host].k0s_role }}
+          {% endif %}
+          {% endfor %}
+
+    - name: Read current k0sctl.yaml
+      slurp:
+        src: "{{ k0sctl_path }}"
+      register: k0sctl_content
+
+    - name: Parse k0sctl.yaml
+      set_fact:
+        k0sctl: "{{ k0sctl_content.content | b64decode | from_yaml }}"
+
+    - name: Build new hosts array
+      set_fact:
+        new_hosts: >-
+          [{% for host in groups['clients'] %}{% if hostvars[host].kube_node | default(false) | bool %}{"ssh": {"address": "{{ hostvars[host].ansible_host }}", "user": "{{ hostvars[host].ansible_user | default('joe') }}", "port": {{ hostvars[host].ansible_port | default(22) }}}, "role": "{{ hostvars[host].k0s_role }}"{% if hostvars[host].k0s_labels is defined or hostvars[host].k0s_taints is defined %}, "installFlags": [{% if hostvars[host].k0s_labels is defined %}"--labels={{ hostvars[host].k0s_labels }}"{% endif %}{% if hostvars[host].k0s_labels is defined and hostvars[host].k0s_taints is defined %}, {% endif %}{% if hostvars[host].k0s_taints is defined %}"--taints={{ hostvars[host].k0s_taints }}"{% endif %}]{% endif %}}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}]
+
+    - name: Update hosts in k0sctl
+      set_fact:
+        k0sctl_updated: "{{ k0sctl | combine({'spec': k0sctl.spec | combine({'hosts': new_hosts | from_json})}) }}"
+
+    - name: Write updated k0sctl.yaml
+      copy:
+        content: "{{ k0sctl_updated | to_nice_yaml(indent=2) }}"
+        dest: "{{ k0sctl_path }}"
+
+    - name: Show generated hosts
+      debug:
+        msg: "Generated {{ new_hosts | from_json | length }} k0s hosts"

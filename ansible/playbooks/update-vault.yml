@@ -1,0 +1,44 @@
+---
+- name: Upgrade Vault on all nodes
+  hosts: clients
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Check current Vault version
+      command: vault version
+      register: vault_old_version
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Upgrade Vault with conffile handling
+      apt:
+        name: vault
+        state: latest
+        update_cache: yes
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        DPKG_OPTIONS: "--force-confold"
+      register: vault_upgrade
+
+    - name: Restart Vault service
+      systemd:
+        name: vault
+        state: restarted
+      when: vault_upgrade.changed
+
+    - name: Wait for Vault to be ready
+      wait_for:
+        port: 8200
+        delay: 5
+        timeout: 60
+      when: vault_upgrade.changed
+
+    - name: Check new Vault version
+      command: vault version
+      register: vault_new_version
+      changed_when: false
+
+    - name: Display version changes
+      debug:
+        msg: "{{ inventory_hostname }}: {{ vault_old_version.stdout_lines[0] | default('Not installed') }} -> {{ vault_new_version.stdout_lines[0] }}"

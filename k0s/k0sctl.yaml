@@ -1,0 +1,85 @@
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: k0s-homelab
+spec:
+  hosts:
+  - role: worker
+    ssh:
+      address: 192.168.7.128
+      port: 22
+      user: joe
+  - role: worker
+    ssh:
+      address: 192.168.7.129
+      port: 22
+      user: joe
+  - role: worker
+    ssh:
+      address: 192.168.7.81
+      port: 22
+      user: joe
+  - role: controller+worker
+    ssh:
+      address: 192.168.6.188
+      port: 22
+      user: joe
+  - role: worker
+    ssh:
+      address: 192.168.7.122
+      port: 22
+      user: joe
+  - installFlags:
+    - --labels=node-type=hyperv
+    - --taints=node-type=hyperv:NoSchedule
+    role: worker
+    ssh:
+      address: 192.168.6.12
+      port: 22
+      user: joe
+  k0s:
+    config:
+      spec:
+        workerProfiles:
+          - name: default
+            values:
+              evictionHard:
+                nodefs.available: "1%"
+                imagefs.available: "1%"
+                memory.available: "100Mi"
+              evictionSoft:
+                nodefs.available: "2%"
+                imagefs.available: "2%"
+                memory.available: "200Mi"
+              evictionSoftGracePeriod:
+                nodefs.available: "1m"
+                imagefs.available: "1m"
+                memory.available: "1m"
+        network:
+          kubeProxy:
+            disabled: true
+          podCIDR: 10.244.0.0/16
+          provider: custom
+          serviceCIDR: 10.96.0.0/12
+    version: 1.31.2+k0s.0
+  options:
+    concurrency:
+      limit: 30
+      uploads: 5
+      workerDisruptionPercent: 10
+    drain:
+      deleteEmptyDirData: true
+      enabled: true
+      force: true
+      gracePeriod: 2m0s
+      ignoreDaemonSets: true
+      podSelector: ''
+      skipWaitForDeleteTimeout: 0s
+      timeout: 5m0s
+    evictTaint:
+      controllerWorkers: false
+      effect: NoExecute
+      enabled: false
+      taint: k0sctl.k0sproject.io/evict=true
+    wait:
+      enabled: true

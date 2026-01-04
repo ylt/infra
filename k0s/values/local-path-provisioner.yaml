@@ -1,0 +1,11 @@
+# Local-path-provisioner for direct disk storage
+storageClass:
+  name: local-path
+  defaultClass: false
+  reclaimPolicy: Delete
+
+nodePathMap:
+  # Host path where PVs are created (Garage data lives inside container paths)
+  - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
+    paths:
+      - /var/lib/local-path-provisioner

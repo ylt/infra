@@ -1,0 +1,56 @@
+---
+# Ubuntu Upgrade Playbook
+# Upgrades nodes from Lunar (23.04) to Noble (24.04 LTS)
+#
+# Usage:
+#   # Upgrade specific node:
+#   ansible-playbook ubuntu-upgrade.yml --limit ubuntu-node-2
+#
+#   # Upgrade all workers:
+#   ansible-playbook ubuntu-upgrade.yml --limit '!ubuntu-node-1'
+#
+#   # Upgrade all nodes (NOT RECOMMENDED - do workers first, then master):
+#   ansible-playbook ubuntu-upgrade.yml
+
+- name: Upgrade Ubuntu to 24.04 LTS
+  hosts: clients
+  become: yes
+  gather_facts: yes
+  # serial: 1  # Uncomment to upgrade one node at a time for safety
+
+  pre_tasks:
+    - name: Display node being upgraded
+      debug:
+        msg: "Upgrading {{ inventory_hostname }} ({{ ansible_host }})"
+
+    - name: Confirm current OS version
+      command: lsb_release -a
+      register: current_os
+      changed_when: false
+
+    - name: Show current OS
+      debug:
+        var: current_os.stdout_lines
+
+    # Removed pause for concurrent execution
+    # - name: Pause for confirmation
+    #   pause:
+    #     prompt: "About to upgrade {{ inventory_hostname }}. Press Enter to continue or Ctrl+C to abort"
+    #   when: ansible_play_hosts | length > 1
+
+  roles:
+    - ubuntu-upgrade
+
+  post_tasks:
+    - name: Verify services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+      loop:
+        - nomad
+        - consul
+      ignore_errors: yes
+
+    - name: Display upgrade complete message
+      debug:
+        msg: "{{ inventory_hostname }} upgrade complete!"

@@ -1,0 +1,21 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      {{- if .Values.ingress.authentik }}
+      middlewares:
+        - name: authentik
+          namespace: traefik
+      {{- end }}
+      services:
+        - name: {{ .Release.Name }}
+          port: 8989
+  tls: {}
+{{- end }}

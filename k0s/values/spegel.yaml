@@ -1,0 +1,20 @@
+# Spegel - P2P registry mirror for k0s
+
+spegel:
+  # k0s-specific paths
+  containerdSock: "/run/k0s/containerd.sock"
+  containerdContentPath: "/var/lib/k0s/containerd/io.containerd.content.v1.content"
+
+  # Registries to mirror
+  registries:
+    - https://docker.io
+    - https://ghcr.io
+    - https://quay.io
+    - https://gcr.io
+    - https://registry.k8s.io
+
+resources:
+  requests:
+    memory: 64Mi
+  limits:
+    memory: 128Mi

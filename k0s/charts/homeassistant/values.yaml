@@ -1,0 +1,40 @@
+image:
+  repository: lscr.io/linuxserver/homeassistant
+  tag: latest
+  pullPolicy: Always
+
+# Host network required for device discovery
+hostNetwork: true
+
+# UI port
+port: 8123
+
+# Database
+database:
+  host: postgres.postgres.svc.cluster.local
+  name: homeassistant
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: longhorn
+
+# Ingress
+ingress:
+  enabled: true
+  host: home.golden.wales
+
+# Resources
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Vault
+vault:
+  enabled: true
+  role: homeassistant

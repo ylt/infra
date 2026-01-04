@@ -1,0 +1,14 @@
+# Cloudflare DNS credentials for cert-manager
+cloudflare:
+  apiToken: ""
+
+# Let's Encrypt configuration
+letsencrypt:
+  email: joe@golden.wales
+  # Use staging for testing, production for real certs
+  server: https://acme-v02.api.letsencrypt.org/directory
+  # server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+# DNS zones to manage
+dnsZones:
+  - golden.wales

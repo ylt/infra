@@ -1,0 +1,44 @@
+---
+# Fix multipath claiming Longhorn iSCSI devices
+# See: https://longhorn.io/kb/troubleshooting-volume-with-multipath/
+- name: Blacklist Longhorn devices from multipath
+  hosts: clients
+  become: true
+  vars:
+    multipath_conf: |
+      defaults {
+          user_friendly_names yes
+      }
+
+      blacklist {
+          devnode "^sd[a-z0-9]+"
+      }
+
+  tasks:
+    - name: Check if multipath is installed
+      command: which multipathd
+      register: multipathd_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Configure multipath blacklist
+      copy:
+        content: "{{ multipath_conf }}"
+        dest: /etc/multipath.conf
+        owner: root
+        group: root
+        mode: '0644'
+      when: multipathd_check.rc == 0
+      notify: Restart multipathd
+
+    - name: Flush existing multipath devices
+      command: multipath -F
+      when: multipathd_check.rc == 0
+      ignore_errors: true
+      changed_when: true
+
+  handlers:
+    - name: Restart multipathd
+      systemd:
+        name: multipathd
+        state: restarted

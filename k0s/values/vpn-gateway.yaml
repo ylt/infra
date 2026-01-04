@@ -1,0 +1,29 @@
+# VPN Gateway - WireGuard Hub with Mullvad egress
+
+# WireGuard server settings
+wireguard:
+  internalSubnet: "10.13.13.0/24"
+  # Keys set in vpn-gateway-secrets.yaml
+  privateKey: ""
+  publicKey: ""
+
+# Peer config for sidecars (peer1)
+peer:
+  privateKey: ""  # Set in vpn-gateway-secrets.yaml
+  presharedKey: ""  # Set in vpn-gateway-secrets.yaml
+  address: "10.13.13.2"
+
+# Mullvad VPN connection (wg1)
+mullvad:
+  privateKey: ""  # Set in vpn-gateway-secrets.yaml
+  address: "10.69.239.199/32"
+  publicKey: ""  # Set in vpn-gateway-secrets.yaml
+  endpoint: "193.138.218.220:51820"
+
+# DNS for connected clients (cluster DNS)
+dns: "10.96.0.10"
+
+# Persistent storage for config
+storage:
+  storageClass: longhorn
+  size: 1Gi

@@ -1,0 +1,43 @@
+---
+# Install k0s worker dependencies on WSL
+- name: Setup k0s worker dependencies on WSL
+  hosts: wsl-desktop
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - iptables
+          - nfs-common
+          - cryptsetup
+          - open-iscsi
+        state: present
+        update_cache: yes
+
+    - name: Enable iscsid service
+      systemd:
+        name: iscsid
+        state: started
+        enabled: yes
+
+    - name: Fix mount propagation for Cilium
+      shell: mount --make-rshared /
+      changed_when: false
+
+    - name: Make mount propagation fix persistent in wsl.conf
+      lineinfile:
+        path: /etc/wsl.conf
+        regexp: '^command='
+        line: 'command=mount --make-rshared /'
+        insertafter: '^\[boot\]'
+
+    - name: Ensure automount section in wsl.conf
+      blockinfile:
+        path: /etc/wsl.conf
+        marker: "# {mark} ANSIBLE MANAGED - automount"
+        block: |
+          [automount]
+          crossDistro = true

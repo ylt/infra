@@ -1,0 +1,20 @@
+image:
+  repository: lscr.io/linuxserver/prowlarr
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 1Gi
+
+vpn:
+  enabled: false
+
+ingress:
+  enabled: true
+  host: prowlarr.golden.wales
+  authentik: true
+
+resources: {}

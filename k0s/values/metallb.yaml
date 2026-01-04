@@ -1,0 +1,2 @@
+# MetalLB configuration for bare metal LoadBalancer
+# After install, apply metallb-config.yaml to create IPAddressPool

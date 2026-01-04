@@ -1,0 +1,17 @@
+image:
+  repository: fallenbagel/jellyseerr
+  tag: latest
+  pullPolicy: IfNotPresent
+
+timezone: Europe/London
+
+persistence:
+  storageClass: longhorn
+  size: 1Gi
+
+ingress:
+  enabled: true
+  host: jellyseerr.golden.wales
+  authentik: false  # Jellyseerr has its own auth via Jellyfin
+
+resources: {}

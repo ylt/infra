@@ -1,0 +1,19 @@
+image:
+  repository: cloudflare/cloudflared
+  tag: latest
+  pullPolicy: Always
+
+replicas: 1
+
+tunnel:
+  # Token from Cloudflare Zero Trust dashboard
+  # Create tunnel at: https://one.dash.cloudflare.com/ -> Networks -> Tunnels
+  token: ""
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi

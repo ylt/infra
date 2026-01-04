@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: zot
+  namespace: zot
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    # All traffic to Zot - it handles OIDC auth itself
+    - match: Host(`zot.golden.wales`)
+      kind: Rule
+      services:
+        - name: zot
+          port: 5000
+  tls: {}
