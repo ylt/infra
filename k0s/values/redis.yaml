@@ -1,0 +1,25 @@
+image:
+  repository: redis
+  tag: 7.4-alpine
+  pullPolicy: IfNotPresent
+
+service:
+  main:
+    ports:
+      http:
+        enabled: false
+      redis:
+        enabled: true
+        port: 6379
+        primary: true
+
+# No persistence needed for cache
+# No ingress needed
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

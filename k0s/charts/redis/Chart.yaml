@@ -4,3 +4,7 @@ description: Simple Redis deployment using official image
 type: application
 version: 0.1.0
 appVersion: "7.4"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common

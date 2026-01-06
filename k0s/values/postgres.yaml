@@ -1,22 +1,86 @@
-# PostgreSQL configuration
-
 image:
   repository: postgres
   tag: "16"
   pullPolicy: IfNotPresent
 
-# Service - LoadBalancer for external access during migration
-service:
-  type: LoadBalancer
-  port: 5432
+serviceAccount:
+  create: true
 
-# Persistence
-persistence:
+# Vault integration for credentials
+vault:
   enabled: true
-  size: 50Gi
-  storageClass: longhorn
+  role: postgres
 
-# Resources
+# Fix permissions init container (postgres runs as uid 999)
+initContainers:
+  fix-permissions:
+    image: busybox:latest
+    command: ["sh", "-c", "chown -R 999:999 /var/lib/postgresql/data"]
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/postgresql/data
+
+env:
+  PGDATA: /var/lib/postgresql/data/pgdata
+  POSTGRES_DB: postgres
+  POSTGRES_USER:
+    valueFrom:
+      secretKeyRef:
+        name: postgres-credentials
+        key: username
+  POSTGRES_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: postgres-credentials
+        key: password
+
+# Custom probes for postgres
+probes:
+  liveness:
+    enabled: true
+    custom: true
+    spec:
+      exec:
+        command:
+          - pg_isready
+          - -U
+          - postgres
+      initialDelaySeconds: 30
+      periodSeconds: 10
+  readiness:
+    enabled: true
+    custom: true
+    spec:
+      exec:
+        command:
+          - pg_isready
+          - -U
+          - postgres
+      initialDelaySeconds: 5
+      periodSeconds: 5
+  startup:
+    enabled: false
+
+service:
+  main:
+    type: LoadBalancer
+    ports:
+      http:
+        enabled: false
+      postgres:
+        enabled: true
+        port: 5432
+        primary: true
+
+persistence:
+  data:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    mountPath: /var/lib/postgresql/data
+
 resources:
   requests:
     cpu: 200m
@@ -24,8 +88,3 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
-
-# Vault Secrets Operator
-vault:
-  enabled: true
-  role: postgres

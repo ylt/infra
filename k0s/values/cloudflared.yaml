@@ -1,3 +1,45 @@
-# Cloudflared tunnel configuration
+image:
+  repository: cloudflare/cloudflared
+  tag: latest
+  pullPolicy: Always
+
+# Tunnel token from Cloudflare Zero Trust dashboard
+# Set in cloudflared-secrets.yaml
 tunnel:
-  token: ""  # Set in cloudflared-secrets.yaml
+  token: ""
+
+args:
+  - tunnel
+  - --no-autoupdate
+  - run
+  - --token
+  - $(TUNNEL_TOKEN)
+
+env:
+  TUNNEL_TOKEN:
+    valueFrom:
+      secretKeyRef:
+        name: cloudflared-tunnel
+        key: token
+
+# No service needed (outbound only)
+service:
+  main:
+    enabled: false
+
+# Disable probes (no HTTP endpoint)
+probes:
+  liveness:
+    enabled: false
+  readiness:
+    enabled: false
+  startup:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
