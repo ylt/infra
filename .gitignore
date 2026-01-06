@@ -13,6 +13,13 @@
 # Helm values secrets files
 k0s/values/*-secrets.yaml
 
+# Helm generated files (rebuilt by helmfile deps)
+k0s/charts/*/Chart.lock
+k0s/charts/*/charts/
+
+# Environment files (contain secrets)
+*.env
+
 # Keep example files
 !**/*.example
 !**/terraform.tfvars.example

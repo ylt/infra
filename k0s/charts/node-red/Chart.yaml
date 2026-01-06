@@ -1,6 +1,10 @@
 apiVersion: v2
 name: node-red
-description: Node-RED flow-based programming tool
+description: Node-RED flow-based programming
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "latest"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common

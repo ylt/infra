@@ -1,38 +1,77 @@
-# Govee2MQTT configuration
-
-# Host network for multicast LAN discovery
-hostNetwork: true
-
 image:
   repository: ghcr.io/wez/govee2mqtt
   tag: latest
   pullPolicy: Always
 
-# HTTP API port
-ui:
-  port: 8056
+serviceAccount:
+  create: true
 
-# MQTT settings (k8s mosquitto)
-mqtt:
-  host: mosquitto.mosquitto.svc.cluster.local
-  port: 1883
+# Vault integration for Govee API credentials
+vault:
+  enabled: true
+  role: govee2mqtt
+  path: govee/credentials
 
-# Temperature unit
-temperature: celsius
+env:
+  TZ: Europe/London
+  GOVEE_MQTT_HOST: mosquitto.mosquitto.svc.cluster.local
+  GOVEE_MQTT_PORT: "1883"
+  GOVEE_TEMPERATURE_SCALE: celsius
+  # Credentials from Vault-synced secret
+  GOVEE_API_KEY:
+    valueFrom:
+      secretKeyRef:
+        name: govee2mqtt-credentials
+        key: api_key
+  GOVEE_EMAIL:
+    valueFrom:
+      secretKeyRef:
+        name: govee2mqtt-credentials
+        key: email
+  GOVEE_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: govee2mqtt-credentials
+        key: password
 
-# Persistence
+# Fix permissions init container
+initContainers:
+  fix-permissions:
+    image: busybox:latest
+    command: ["sh", "-c", "chown -R 1000:1000 /data"]
+    volumeMounts:
+      - name: data
+        mountPath: /data
+
+# Host network for multicast LAN discovery
+hostNetwork: true
+dnsPolicy: ClusterFirstWithHostNet
+
+service:
+  main:
+    ports:
+      http:
+        port: 8056
+
 persistence:
-  enabled: true
-  size: 1Gi
-  storageClass: longhorn
+  data:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data
 
-# Ingress
-ingress:
-  enabled: true
-  host: govee.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`govee.golden.wales`)
+    tls: true
 
-# Resources
 resources:
   requests:
     cpu: 100m
@@ -40,8 +79,3 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
-
-# Vault Secrets Operator settings
-vault:
-  enabled: true
-  role: govee2mqtt

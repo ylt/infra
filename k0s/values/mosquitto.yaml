@@ -1,31 +1,73 @@
-# Mosquitto MQTT broker configuration
-
-service:
-  type: LoadBalancer
-
 image:
   repository: eclipse-mosquitto
   tag: latest
   pullPolicy: Always
 
-# Ports
-mqtt:
-  port: 1883
-websocket:
-  port: 9001
+env:
+  TZ: Europe/London
 
-# Persistence
+service:
+  main:
+    type: LoadBalancer
+    ports:
+      http:
+        enabled: false
+      mqtt:
+        enabled: true
+        port: 1883
+        primary: true
+      websocket:
+        enabled: true
+        port: 9001
+
 persistence:
-  enabled: true
-  size: 1Gi
-  storageClass: longhorn
+  data:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /mosquitto/data
+  config:
+    enabled: true
+    type: configMap
+    name: mosquitto-config
+    mountPath: /mosquitto/config/mosquitto.conf
+    subPath: mosquitto.conf
 
-# Ingress for websocket
-ingress:
-  enabled: true
-  host: mqtt.golden.wales
+configmap:
+  config:
+    enabled: true
+    data:
+      mosquitto.conf: |
+        # Mosquitto configuration file
+        persistence true
+        persistence_location /mosquitto/data/
 
-# Resources
+        # MQTT listener
+        listener 1883
+        protocol mqtt
+
+        # WebSocket listener
+        listener 9001
+        protocol websockets
+
+        # Authentication (allow anonymous for now)
+        allow_anonymous true
+
+        # Logging
+        log_dest stdout
+
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: false
+    routes:
+      - match: Host(`mqtt.golden.wales`)
+    tls: true
+
 resources:
   requests:
     cpu: 100m

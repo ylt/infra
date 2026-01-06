@@ -1,5 +1,10 @@
 apiVersion: v2
 name: zigbee2mqtt
-description: Zigbee2MQTT - Zigbee to MQTT bridge
-version: 0.1.0
+description: Zigbee2MQTT bridge
+type: application
+version: 1.0.0
 appVersion: "latest"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common

@@ -1,0 +1,66 @@
+---
+# Extract API keys from *arr services
+#
+# Usage:
+#   ansible-playbook playbooks/extract-api-keys.yml
+
+- name: Extract API keys from media services
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    media_namespace: media
+
+  tasks:
+    - name: Extract Sonarr API key
+      command: kubectl exec -n {{ media_namespace }} deploy/sonarr -- sed -n 's/.*<ApiKey>\(.*\)<\/ApiKey>.*/\1/p' /config/config.xml
+      register: sonarr_key
+      changed_when: false
+
+    - name: Extract Radarr API key
+      command: kubectl exec -n {{ media_namespace }} deploy/radarr -- sed -n 's/.*<ApiKey>\(.*\)<\/ApiKey>.*/\1/p' /config/config.xml
+      register: radarr_key
+      changed_when: false
+
+    - name: Extract Prowlarr API key
+      command: kubectl exec -n {{ media_namespace }} deploy/prowlarr -- sed -n 's/.*<ApiKey>\(.*\)<\/ApiKey>.*/\1/p' /config/config.xml
+      register: prowlarr_key
+      changed_when: false
+
+    - name: Extract Bazarr API key
+      shell: kubectl exec -n {{ media_namespace }} deploy/bazarr -- grep 'apikey:' /config/config/config.yaml | awk '{print $2}' | head -1
+      register: bazarr_key
+      changed_when: false
+
+    - name: Extract Jellyseerr API key
+      shell: "kubectl exec -n {{ media_namespace }} deploy/jellyseerr -- sed -n 's/.*\"apiKey\": \"\\([^\"]*\\)\".*/\\1/p' /app/config/settings.json"
+      register: jellyseerr_key_raw
+      changed_when: false
+
+    - name: Get first Jellyseerr API key
+      set_fact:
+        jellyseerr_key: "{{ jellyseerr_key_raw.stdout_lines[0] }}"
+
+    - name: Generate .env file
+      copy:
+        dest: "{{ playbook_dir }}/../../arr-api-keys.env"
+        content: |
+          SONARR_API_KEY={{ sonarr_key.stdout }}
+          RADARR_API_KEY={{ radarr_key.stdout }}
+          PROWLARR_API_KEY={{ prowlarr_key.stdout }}
+          BAZARR_API_KEY={{ bazarr_key.stdout }}
+          JELLYSEERR_API_KEY={{ jellyseerr_key }}
+        mode: '0600'
+
+    - name: Display API keys
+      debug:
+        msg: |
+
+          API keys written to arr-api-keys.env
+
+          sonarr:     {{ sonarr_key.stdout }}
+          radarr:     {{ radarr_key.stdout }}
+          prowlarr:   {{ prowlarr_key.stdout }}
+          bazarr:     {{ bazarr_key.stdout }}
+          jellyseerr: {{ jellyseerr_key }}

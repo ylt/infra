@@ -1,6 +1,10 @@
 apiVersion: v2
 name: govee2mqtt
-description: Govee to MQTT bridge
+description: Govee2MQTT bridge
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "latest"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common

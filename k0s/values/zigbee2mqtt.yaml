@@ -1,37 +1,40 @@
-# Zigbee2MQTT configuration
-
 image:
   repository: koenkk/zigbee2mqtt
   tag: latest
   pullPolicy: Always
 
-# MQTT broker settings (k8s mosquitto service)
-mqtt:
-  server: mqtt://mosquitto.mosquitto.svc.cluster.local:1883
+env:
+  TZ: Europe/London
+  ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto.mosquitto.svc.cluster.local:1883
+  ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://192.168.7.37:6638
+  ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: zstack
+  ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: "8080"
 
-# Zigbee coordinator settings (SLZB-06 Ethernet coordinator)
-serial:
-  port: tcp://192.168.7.37:6638
-  adapter: zstack
+service:
+  main:
+    ports:
+      http:
+        port: 8080
 
-# Frontend UI
-frontend:
-  enabled: true
-  port: 8080
-
-# Persistence
 persistence:
-  enabled: true
-  size: 1Gi
-  storageClass: longhorn
+  data:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/data
 
-# Ingress
-ingress:
-  enabled: true
-  host: zigbee.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`zigbee.golden.wales`)
+    tls: true
 
-# Resources
 resources:
   requests:
     cpu: 100m
@@ -39,9 +42,3 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
-
-# NFS migration settings (disabled after initial migration)
-migration:
-  enabled: false
-  nfsServer: 192.168.7.128
-  nfsPath: /home/joe/nomad/data/zigbee2mqtt_data

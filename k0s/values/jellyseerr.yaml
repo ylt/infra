@@ -3,15 +3,32 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-timezone: Europe/London
+env:
+  TZ: Europe/London
+
+service:
+  main:
+    ports:
+      http:
+        port: 5055
 
 persistence:
-  storageClass: longhorn
-  size: 1Gi
+  config:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/config
 
-ingress:
-  enabled: true
-  host: jellyseerr.golden.wales
-  authentik: false  # Jellyseerr has its own auth via Jellyfin
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: false
+    routes:
+      - match: Host(`jellyseerr.golden.wales`)
+    tls: true
 
 resources: {}

@@ -4,3 +4,7 @@ description: qBittorrent download client
 type: application
 version: 1.0.0
 appVersion: "latest"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common

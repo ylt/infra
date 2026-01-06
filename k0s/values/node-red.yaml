@@ -1,21 +1,35 @@
-# Node-RED configuration
-
 image:
   repository: nodered/node-red
   tag: latest
   pullPolicy: Always
 
-port: 1880
+env:
+  TZ: Europe/London
+
+service:
+  main:
+    ports:
+      http:
+        port: 1880
 
 persistence:
-  enabled: true
-  size: 1Gi
-  storageClass: longhorn
+  data:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data
 
-ingress:
-  enabled: true
-  host: node-red.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`node-red.golden.wales`)
+    tls: true
 
 resources:
   requests:

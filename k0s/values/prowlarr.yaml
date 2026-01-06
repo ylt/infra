@@ -3,18 +3,34 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-timezone: Europe/London
+env:
+  TZ: Europe/London
+  PUID: "1000"
+  PGID: "1000"
+
+service:
+  main:
+    ports:
+      http:
+        port: 9696
 
 persistence:
-  storageClass: longhorn
-  size: 1Gi
+  config:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /config
 
-vpn:
-  enabled: false
-
-ingress:
-  enabled: true
-  host: prowlarr.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`prowlarr.golden.wales`)
+    tls: true
 
 resources: {}

@@ -3,21 +3,50 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-timezone: Europe/London
+env:
+  TZ: Europe/London
+  PUID: "1000"
+  PGID: "1000"
+  WEBUI_PORT: "8080"
+
+podLabels:
+  vpn-egress: "true"
+
+service:
+  main:
+    ports:
+      http:
+        port: 8080
 
 persistence:
-  storageClass: longhorn
-  size: 1Gi
+  config:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /config
+  media:
+    enabled: true
+    type: pvc
+    existingClaim: media-s3
+    mountPath: /media
+  incomplete:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    mountPath: /media/downloads/incomplete
 
-media:
-  existingClaim: media-s3
-
-vpn:
-  enabled: true
-
-ingress:
-  enabled: true
-  host: qbit.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`qbit.golden.wales`)
+    tls: true
 
 resources: {}

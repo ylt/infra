@@ -3,18 +3,39 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-timezone: Europe/London
+env:
+  TZ: Europe/London
+  PUID: "1000"
+  PGID: "1000"
+
+service:
+  main:
+    ports:
+      http:
+        port: 8989
 
 persistence:
-  storageClass: longhorn
-  size: 1Gi
+  config:
+    enabled: true
+    type: pvc
+    storageClass: longhorn
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /config
+  media:
+    enabled: true
+    type: pvc
+    existingClaim: media-s3
+    mountPath: /media
 
-media:
-  existingClaim: media-s3
-
-ingress:
-  enabled: true
-  host: sonarr.golden.wales
-  authentik: true
+ingressRoute:
+  main:
+    enabled: true
+    entryPoints:
+      - websecure
+    authentik: true
+    routes:
+      - match: Host(`sonarr.golden.wales`)
+    tls: true
 
 resources: {}

@@ -4,3 +4,7 @@ description: openHAB home automation
 type: application
 version: 0.1.0
 appVersion: "4.3.0"
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common
