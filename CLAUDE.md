@@ -1,21 +1,19 @@
-# CLAUDE.md
+# Infrastructure Repository
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Homelab infrastructure-as-code managing a Raspberry Pi Kubernetes cluster.
 
-## Overview
+## Stack
 
-This is a homelab infrastructure-as-code repository managing a Raspberry Pi cluster running Kubernetes:
-
-- **k0s** for lightweight Kubernetes
-- **Cilium** for CNI with eBPF (kube-proxy replacement)
-- **Helmfile** for declarative Helm deployments
-- **Ansible** for server configuration
-- **Terraform** for Authentik identity provider configuration
+- **k0s** - Lightweight Kubernetes
+- **Cilium** - CNI with eBPF (kube-proxy replacement)
+- **Helmfile** - Declarative Helm deployments
+- **Terraform** - Authentik identity provider configuration
+- **Ansible** - Node configuration
 
 ## Cluster Topology
 
-| Node | IP | k0s Role | Hardware |
-|------|-----|----------|----------|
+| Node | IP | Role | Hardware |
+|------|-----|------|----------|
 | node-1 | 192.168.7.128 | worker | Pi 4 |
 | node-2 | 192.168.7.129 | worker | Pi 4 |
 | node-3 | 192.168.7.81 | worker | Pi 4 |
@@ -26,110 +24,82 @@ This is a homelab infrastructure-as-code repository managing a Raspberry Pi clus
 
 ```
 infra/
-├── k0s/                    # Kubernetes cluster configuration
+├── k0s/                    # Kubernetes configuration
 │   ├── helmfile.yaml       # All Helm releases
 │   ├── values/             # Helm values files
 │   ├── charts/             # Local Helm charts
 │   ├── images/             # Custom Docker images
-│   ├── terraform/authentik # Authentik OAuth/OIDC providers
-│   └── k0sctl.yaml         # k0s cluster definition
-├── ansible/                # Server configuration
+│   ├── terraform/authentik # OAuth/OIDC providers
+│   └── k0sctl.yaml         # Cluster definition
+├── ansible/                # Node configuration
 │   ├── hosts               # Inventory
 │   └── playbooks/          # Ansible playbooks
+├── docs/                   # Guides
+│   ├── adding-an-app.md    # Full app deployment workflow
+│   └── chart-conventions.md # Helm chart patterns
 └── CLAUDE.md
 ```
 
-See `k0s/CLAUDE.md` for detailed k0s cluster documentation.
+## Quick Start
 
-## Common Commands
-
-### Helmfile (k0s/helmfile.yaml)
+### Deploy an App
 
 ```bash
+# 1. Configure auth (Terraform)
+cd k0s/terraform/authentik
+terraform apply
+
+# 2. Deploy (Helmfile)
 cd k0s
-
-# Deploy specific release
-helmfile sync -l name=<release-name>
-
-# Deploy all
-helmfile sync
-
-# Check what would change
-helmfile diff
+helmfile sync -l name=<app-name>
 ```
 
-### kubectl
+See `docs/adding-an-app.md` for the full workflow.
 
-Uses default kubeconfig at `~/.kube/config`:
+### Common Commands
 
 ```bash
+# Helmfile
+helmfile sync -l name=<release>  # Deploy specific
+helmfile sync                     # Deploy all
+helmfile diff                     # Preview changes
+
+# kubectl (uses ~/.kube/config)
 kubectl get pods -A
-kubectl logs -n <namespace> <pod>
-kubectl get nodes
-```
+kubectl logs -n <ns> <pod>
 
-### k0sctl Cluster Management
-
-```bash
-# Deploy/update cluster (requires 1Password SSH agent)
+# k0sctl (requires 1Password SSH agent)
 SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" \
   k0sctl apply --config k0s/k0sctl.yaml
 
-# Get kubeconfig
-SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" \
-  k0sctl kubeconfig --config k0s/k0sctl.yaml > ~/.kube/config
-```
-
-### Ansible
-
-```bash
-cd ansible
-
-# Run main playbook
-ansible-playbook playbooks/main.yml
-
-# Run on specific hosts
-ansible-playbook playbooks/main.yml --limit node-5
-```
-
-### Terraform (Authentik)
-
-```bash
-cd k0s/terraform/authentik
-terraform plan
-terraform apply
+# Ansible
+cd ansible && ansible-playbook playbooks/main.yml
 ```
 
 ## Key Services
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Traefik | traefik.golden.wales | Ingress controller |
-| Authentik | auth.golden.wales | SSO/identity provider |
-| Zot | zot.golden.wales | Container registry |
+| Authentik | auth.golden.wales | SSO/identity |
+| Traefik | traefik.golden.wales | Ingress |
 | Grafana | grafana.golden.wales | Dashboards |
 | Home Assistant | home.golden.wales | Home automation |
 | Longhorn | longhorn.golden.wales | Storage UI |
+| Zot | zot.golden.wales | Container registry |
 
-## Container Registry (Zot)
-
-Custom images are built and pushed to the internal Zot registry:
+## Container Registry
 
 ```bash
-# Build and push (requires OIDC API key from UI)
 docker login zot.golden.wales
 docker build -t zot.golden.wales/my-image:latest .
 docker push zot.golden.wales/my-image:latest
 ```
 
-- **Anonymous pulls**: Enabled for cluster workloads (no imagePullSecrets needed)
-- **Authenticated push**: Via OIDC with Authentik
+- Anonymous pulls enabled for cluster workloads
+- Push requires OIDC authentication via Authentik
 
-Custom image sources live in `k0s/images/`.
+## Notes
 
-## Important Notes
-
-- SSH to nodes uses 1Password agent - set `SSH_AUTH_SOCK` for k0sctl commands
-- After k0s reset, reboot nodes to ensure clean state
+- SSH uses 1Password agent - set `SSH_AUTH_SOCK` for k0sctl
+- After k0s reset, reboot nodes for clean state
 - Use default kubeconfig - no KUBECONFIG env var needed
-- Unsafe sysctls are blocked by default - use `privileged: true` for networking workloads

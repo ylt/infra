@@ -1,49 +1,84 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code when working with the k0s Kubernetes cluster.
+# k0s Cluster Documentation
 
 ## Overview
 
-This is a k0s-based Kubernetes cluster managed with Helmfile. The cluster runs various self-hosted services including home automation, authentication, monitoring, and networking tools.
+k0s-based Kubernetes cluster managed with Helmfile. Runs self-hosted services including home automation, media, authentication, and monitoring.
 
 ## Architecture
 
-### Deployment Method
-
-- **Helmfile** (`helmfile.yaml`) manages all Helm releases
-- Local charts live in `charts/` directory
-- Values files live in `values/` directory
-- Terraform for Authentik configuration in `terraform/authentik/`
-
-### Key Components
-
 | Component | Purpose |
 |-----------|---------|
-| Traefik | Ingress controller with Authentik forward auth |
-| Longhorn | Distributed storage (CSI) |
-| Authentik | SSO/identity provider |
+| Traefik | Ingress controller |
+| Authentik | SSO/identity provider (OAuth2, LDAP, forward-auth) |
+| Longhorn | Distributed block storage (CSI) |
 | Zot | Container registry at `zot.golden.wales` |
 | Loki + Alloy | Log aggregation |
-| Grafana | Dashboards and visualization |
+| Grafana | Dashboards |
 
-### Container Registry (Zot)
+## Adding Apps
 
-Custom images are built and pushed to the internal Zot registry:
+**Both Terraform AND Helm are required** when adding new apps:
+1. **Terraform** - Configure authentication in `terraform/authentik/`
+2. **Helm** - Deploy the application via `helmfile.yaml`
 
-```bash
-# Build and push
-docker build -t zot.golden.wales/my-image:latest .
-docker push zot.golden.wales/my-image:latest
+See `docs/adding-an-app.md` for the complete workflow.
 
-# Pull (anonymous read enabled)
-image: zot.golden.wales/my-image:latest
+## Chart Conventions
+
+Most apps use the **k8s-at-home common library**:
+
+```yaml
+# Chart.yaml
+dependencies:
+  - name: common
+    version: 4.5.2
+    repository: file://../common
+
+# templates/common.yaml
+{{ include "common.all" . }}
 ```
 
-- **Anonymous pulls**: Enabled for cluster workloads (no imagePullSecrets needed)
-- **Authenticated push**: Via OIDC with Authentik (generate API key from UI)
-- **UI**: https://zot.golden.wales (Authentik login)
+See `docs/chart-conventions.md` for the full values structure.
 
-Custom images live in `images/` directory.
+## Ingress Patterns
+
+### Standard Ingress with Authentik (forward-auth)
+
+For apps without native authentication:
+
+```yaml
+ingress:
+  main:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik@kubernetescrd
+    hosts:
+      - host: app.golden.wales
+        paths:
+          - path: /
+    tls:
+      - hosts:
+          - app.golden.wales
+```
+
+### Standard Ingress (OAuth2 apps)
+
+For apps with built-in OAuth2/OIDC (Grafana, Zot, etc.):
+
+```yaml
+ingress:
+  main:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - host: app.golden.wales
+        paths:
+          - path: /
+    tls:
+      - hosts:
+          - app.golden.wales
+```
 
 ## Common Commands
 
@@ -54,95 +89,52 @@ helmfile sync -l name=<release-name>
 # Deploy all
 helmfile sync
 
-# Check what would change
+# Check changes
 helmfile diff
 
 # Template locally
 helmfile template -l name=<release-name>
 ```
 
-## k0s-Specific Notes
-
-### Unsafe Sysctls Are Blocked
-
-By default, kubelet blocks unsafe sysctls like `net.ipv4.ip_forward`. Pods requesting these via `securityContext.sysctls` will fail with `SysctlForbidden`.
-
-**Workarounds:**
-1. Use `privileged: true` instead (simpler, used for vpn-gateway)
-2. Configure kubelet to allow specific sysctls in k0s.yaml:
-   ```yaml
-   spec:
-     workerProfiles:
-       - name: default
-         values:
-           allowedUnsafeSysctls:
-             - net.ipv4.ip_forward
-   ```
-
-### Default Kubeconfig
-
-Use the default kubeconfig, not a named one:
-```bash
-kubectl get pods  # Correct
-KUBECONFIG=~/.kube/k0s-config kubectl get pods  # Wrong
-```
-
-### Privileged Containers
-
-For networking workloads that need:
-- IP forwarding (`/proc/sys/net/ipv4/ip_forward`)
-- iptables/NAT rules
-- Raw network access
-
-Use `privileged: true` in securityContext rather than trying to use sysctls.
-
-## Service Patterns
-
-### Ingress with Authentik Forward Auth
-
-Protected services use the authentik middleware:
-
-```yaml
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-spec:
-  routes:
-    - match: Host(`app.golden.wales`)
-      middlewares:
-        - name: authentik
-          namespace: traefik
-      services:
-        - name: app
-          port: 8080
-```
-
-### Services with Native OIDC
-
-Apps with built-in OIDC (like Zot) bypass forward auth:
-
-1. Create OAuth2 provider in `terraform/authentik/`
-2. Configure app with OIDC settings
-3. Use simple IngressRoute without authentik middleware
-
 ## Directory Structure
 
 ```
 k0s/
-├── helmfile.yaml           # All Helm releases
-├── k0sctl.yaml             # k0s cluster definition
-├── values/                 # Helm values files
-├── charts/                 # Local Helm charts
-│   ├── cluster-config/     # Cluster-wide resources (certs, ingress, middleware)
-│   ├── vpn-gateway/        # L2TP VPN egress gateway
-│   ├── homeassistant/
-│   ├── mosquitto/
-│   ├── zigbee2mqtt/
-│   ├── govee2mqtt/
-│   ├── node-red/
-│   ├── postgres/
-│   └── cloudflared/
-├── images/                 # Custom Docker images
-│   └── vpn-gateway/        # L2TP gateway image
+├── helmfile.yaml       # All Helm releases
+├── k0sctl.yaml         # k0s cluster definition
+├── values/             # Helm values (*.yaml) and secrets (*-secrets.yaml)
+├── charts/             # Local Helm charts
+│   ├── common/         # k8s-at-home library chart
+│   ├── cluster-config/ # Cluster resources (certs, middleware)
+│   └── */              # Application charts
+├── images/             # Custom Docker images
 └── terraform/
-    └── authentik/          # Authentik OAuth providers, apps, policies
+    └── authentik/      # Authentik OAuth/OIDC configuration
+```
+
+## Container Registry (Zot)
+
+```bash
+# Build and push (requires OIDC API key from UI)
+docker login zot.golden.wales
+docker build -t zot.golden.wales/my-image:latest .
+docker push zot.golden.wales/my-image:latest
+```
+
+- **Anonymous pulls**: Enabled for cluster workloads
+- **Authenticated push**: Via OIDC with Authentik
+
+## k0s-Specific Notes
+
+### Privileged Containers
+
+For networking workloads needing IP forwarding, iptables, or raw network access, use `privileged: true` in securityContext. Unsafe sysctls are blocked by default.
+
+### Default Kubeconfig
+
+Use the default kubeconfig at `~/.kube/config`:
+
+```bash
+kubectl get pods       # Correct
+KUBECONFIG=... kubectl # Wrong
 ```
