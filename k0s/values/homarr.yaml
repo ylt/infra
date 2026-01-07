@@ -20,5 +20,15 @@ persistence:
     storageClassName: longhorn
     size: 1Gi
 
+# Ingress via Traefik (no authentik - has native OIDC)
 ingress:
-  enabled: false
+  enabled: true
+  className: traefik
+  hosts:
+    - host: homarr.golden.wales
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - homarr.golden.wales

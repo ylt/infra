@@ -1,0 +1,5 @@
+# Garage extras - supplementary resources for derwitt/garage chart
+apiVersion: v2
+name: garage-extras
+version: 0.1.0
+description: ConfigMap, admin service, and WebUI for Garage S3 storage

@@ -27,10 +27,14 @@ longhornDriver:
       operator: Exists
       effect: NoSchedule
 
-# Expose Longhorn UI via LoadBalancer
-service:
-  ui:
-    type: LoadBalancer
+# Ingress for Longhorn UI (with Authentik forward auth)
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  host: longhorn.golden.wales
+  tls: true
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik@kubernetescrd
 
 persistence:
   defaultClass: true

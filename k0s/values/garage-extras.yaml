@@ -1,0 +1,4 @@
+# Garage supplementary resources - ConfigMap, admin service, WebUI
+# Admin token for garage.toml is set in garage-extras-secrets.yaml
+garage:
+  adminToken: ""

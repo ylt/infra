@@ -7,9 +7,15 @@ persistence:
 
 # Datasources managed via Terraform
 
-# Ingress via Traefik IngressRoute (we'll create separately)
+# Ingress via Traefik (no authentik - has native OAuth)
 ingress:
-  enabled: false
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+    - grafana.golden.wales
+  tls:
+    - hosts:
+        - grafana.golden.wales
 
 # Admin credentials - will be overridden by Authentik
 adminUser: admin

@@ -379,6 +379,17 @@ releases:
       - values/garage.yaml
       - values/garage-secrets.yaml
 
+  - name: garage-extras
+    namespace: garage
+    chart: charts/garage-extras
+    needs:
+      - garage/garage
+      - traefik/traefik
+      - cert-manager/cluster-config
+    values:
+      - values/garage-extras.yaml
+      - values/garage-extras-secrets.yaml
+
   # Redis for JuiceFS is deployed via cluster-config (simple Redis, not Bitnami)
   # Disabled - replaced by mountpoint-s3-csi-driver
   - name: juicefs-csi-driver

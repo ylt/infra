@@ -3,6 +3,21 @@
 loadBalancer:
   enabled: false
 
+# Ingress with Authentik forward auth
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik@kubernetescrd
+  hosts:
+    - host: kubeview.golden.wales
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - kubeview.golden.wales
+
 resources:
   limits:
     cpu: 100m

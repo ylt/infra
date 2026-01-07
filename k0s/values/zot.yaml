@@ -1,6 +1,19 @@
 # Zot Container Registry with OIDC auth
 # Note: configFiles with OIDC secret is in zot-secrets.yaml
 
+# Ingress (no authentik - Zot handles OIDC itself)
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: zot.golden.wales
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - zot.golden.wales
+
 service:
   type: ClusterIP
   port: 5000

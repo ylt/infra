@@ -1,0 +1,24 @@
+# Ingress for Garage WebUI with Authentik forward auth
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: garage-webui
+  namespace: garage
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: garage.golden.wales
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: garage-webui
+                port:
+                  number: 3909
+  tls:
+    - hosts:
+        - garage.golden.wales
